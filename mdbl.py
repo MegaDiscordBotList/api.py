@@ -13,14 +13,10 @@ import sys
 import os
 import asyncio
 import subprocess
-
+import time
 import signal
 
-def keyboardInterruptHandler(signal, frame):
-    print("[MDBL] Exiting... {} (ID: {})".format(bot.user.name, signal))
-    exit(10)
-
-__version__ = "7.3"
+__version__ = "7.5"
 
 # Your id
 owner = 'id'
@@ -33,6 +29,36 @@ IS_MAC = sys.platform == "darwin"
 def user_choice():
     return input("\n>>> ").lower().strip()
 
+def keyboardInterruptHandler(signal, frame):
+    if hiddenmdbl == True:
+        exit(10)
+    else:
+        print("[MDBL] Exiting... {} (ID: {})".format(bot.user.name, signal))
+        print("\n"
+              "Would you like to give feedback? (y/n)")
+        choice = user_choice()
+        if choice == "y":
+            print("Enter a message :D")
+            try:
+                ch = user_choice()
+                channel = bot.get_channel("575258216137752577")
+                localtime = time.asctime( time.localtime(time.time()) )
+                data = {}
+                data['Bot'] = []
+                data['Bot'].append({
+                    'Msg': "{}".format(ch),
+                    'Time': "{}".format(localtime)
+                    })
+                with open('mdbl/msg.json'.format(bot.user.id), 'w') as outfile:
+                    json.dump(data, outfile)
+                print("Message will be sent on client startup!")
+                exit(10)
+            except:
+                print("[MDBL] Error sending message exiting...")
+                exit(10)
+        else:
+            exit(10)
+
 if IS_WINDOWS:
     plat = "Win"
 else:
@@ -41,7 +67,7 @@ else:
 async def delete():
     # Delete your bot from MDBL
     try:
-        channel = bot.get_channel("567208400891543552")
+        channel = apic
         await bot.send_message(channel, "```\n[DEBUG] Delete Screen```")
         print("WARNING: Are you sure you want to delete your bot from MDBL?")
         print("(y/n)")
@@ -68,7 +94,7 @@ async def delete():
         exc = '{}: {}'.format(type(e).__name__, e)
         print("[MDBL] Unable to execute script!\n{}".format(exc))
 
-async def pull(opt="console"):
+async def pull(opt="console", chan = discord.Channel.id == ""):
     # Pull previous bot data
     try:
         if os.path.isfile('mdbl/{}.json'.format(bot.user.id)):
@@ -76,7 +102,7 @@ async def pull(opt="console"):
                 data = json.load(json_file)
                 for p in data['Bot']:
                     try:
-                        channel = bot.get_channel("567208400891543552")
+                        channel = apic
                         em = discord.Embed(description="Pulled data\n```ini\n! === Bot Data === !\nOS: {}\nServers: {}\nUsers: {}\nChannels: {}\nCommands: {}\n```".format(plat, p['Servers'], p['Users'], p['Channels'], p['Commands']))
                         em.set_footer(text="MDBL - https://mdbl.surge.sh/bot/{}".format(bot.user.id))
                         await bot.send_message(channel, embed=em)
@@ -94,6 +120,17 @@ async def pull(opt="console"):
                                 await bot.send_message(channel, embed=em)
                             except:
                                 print("[MDBL] Unable to send this message (mdbl.pull(bt, {}, {}))".format(bot.user.id, opt))
+                        if opt == "send":
+                            if chan == "":
+                                print("[MDBL] Cant send because you have not entered an id")
+                            else:
+                                try:
+                                    chaa = bot.get_channel(chan)
+                                    em = discord.Embed(description="MDBL bot data for {}\n```ini\n! === Bot Data === !\nOS: {}\nServers: {}\nUsers: {}\nChannels: {}\nCommands: {}\n```".format(bot.user.name, plat, p['Servers'], p['Users'], p['Channels'], p['Commands']))
+                                    em.set_footer(text="MDBL - https://mdbl.surge.sh/bot/{}".format(bot.user.id))
+                                    await bot.send_message(chaa, embed=em)
+                                except:
+                                    print("[MDBL] Unable to send message to '{}'!".format(chan))
                     except Exception as e:
                         exc = '{}: {}'.format(type(e).__name__, e)
                         print("[MDBL] Unable to execute script!\n{}".format(exc))
@@ -106,10 +143,12 @@ async def pull(opt="console"):
 async def post(servers=0, users=0, channels=0, commands=0):
     # Posts status
     try:
-        print("[MDBL] Sending update command... If this doesn't change there must of been an error")
+        if hiddenmdbl == True:
+            pass
+        else:
+            print("[MDBL] Sending update command... If this doesn't change there must of been an error")
         try:
-            channel = bot.get_channel("567208400891543552")
-            await bot.send_message(channel, "@!update {} {} {} {}".format(servers, users, channels, commands))
+            await bot.send_message(apic, "@!update {} {} {} {}".format(servers, users, channels, commands))
             msg = await bot.wait_for_message(content='API = True')
             data = {}
             data['Bot'] = []
@@ -120,36 +159,67 @@ async def post(servers=0, users=0, channels=0, commands=0):
                 'Commands': cmds
                 })
             with open('mdbl/{}.json'.format(bot.user.id), 'w') as outfile:
-                json.dump(data, outfile) 
-            return print("[MDBL]: Updated bot status (Guilds: {} | Users: {} | Channels: {} | Commands: {})".format(servers, users, channels, commands))
+                json.dump(data, outfile)
+            if hiddenmdbl == True:
+                pass
+            else:
+                return print("[MDBL]: Updated bot status (Guilds: {} | Users: {} | Channels: {} | Commands: {})".format(servers, users, channels, commands))
         except:
             print("[MDBL] Error sending or awaiting message!")
     except Exception as e:
         exc = '{}: {}'.format(type(e).__name__, e)
         print("[MDBL] Unable to execute script!\n{}".format(exc))
 
-async def start(bt):
+async def start(bt, hidden=""):
     # Start MDBL client
     global bot
     global servers
     global users
     global channels
     global cmds
+    global hiddenmdbl
+    global apic
+    if hidden == "":
+        hiddenmdbl = False
+    if hidden == "h":
+        hiddenmdbl = True
     bot = bt
+    apic = bot.get_channel("567208400891543552")
     cmds = len(bot.commands)
     users = len(set(bot.get_all_members()))
     servers = len(bot.servers)
     channels = len([c for c in bot.get_all_channels()])
     if os.path.isfile('mdbl/{}.json'.format(bot.user.id)):
-        print("Starting Client...")
-        asyncio.sleep(2)
+        print("Starting Client... {}".format(bot.user.name))
+        time.sleep(2)
         try:
-            channel = bot.get_channel("567208400891543552")
-            await bot.send_message(channel, "@!start")
+            await bot.send_message(apic, "@!start")
             #msg = await bot.wait_for_message(content='True')
+            if os.path.isfile('mdbl/msg.json'):
+                cha = bot.get_channel("575258216137752577")
+                with open('mdbl/msg.json') as json_file:  
+                    data = json.load(json_file)
+                    for p in data['Bot']:
+                        # If this is spammed your bot will be instantly banned!
+                        # its fine if you actually want help but otherwise dont be dumb :D
+                        await bot.send_message(cha, "__**FEEDBACK**__\n"
+                                                    "```\n"
+                                                    "{}\n"
+                                                    "```\n"
+                                                    "**{}**".format(p['Msg'], p['Time']))
+                        os.remove("mdbl/msg.json")
+                        print("[MDBL] Message Sent!")
+            else:
+                pass
             print("[MDBL] Ready!")
-            print("\n-----------MDBL-----------\n"
-                  "Admins: {} | API: v{}".format(len(admins), __version__))
+            time.sleep(1)
+            if hiddenmdbl == True:
+                pass
+            else:
+                print("\n-----------MDBL-----------\n"
+                      "Admins: {} | API: v{} | Discord.py: {} | Loaded Globals: {}\n"
+                      "https://mdbl.surge.sh/bot/{}\n"
+                      "----------------------------\n".format(len(admins), __version__, discord.__version__, len(globals()), bot.user.id))
             signal.signal(signal.SIGINT, keyboardInterruptHandler)
         except Exception as e:
             exc = '{}: {}'.format(type(e).__name__, e)
@@ -167,6 +237,13 @@ async def start(bt):
                 })
             with open('mdbl/{}.json'.format(bot.user.id), 'w') as outfile:
                 json.dump(data, outfile)
+            data = {}
+            data['Config'] = []
+            data['Config'].append({
+                'Feedback_msg': "True"
+                })
+            with open('mdbl/config.json', 'w') as outfile:
+                json.dump(data, outfile)
             print("[MDBL] Setup data file... Restarting!")
             asyncio.sleep(2)
             await start(bot)
@@ -177,3 +254,8 @@ async def start(bt):
 
 
 # (C) MegaDiscordBotList 2019
+
+# When MDBL is loaded it will say this
+print("[MDBL] MDBL has been loaded!")
+print("----------------------------\n")
+time.sleep(2)
