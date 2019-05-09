@@ -1,5 +1,5 @@
 # MDBL API Python
-![API](https://img.shields.io/badge/API-v7.3-green.svg) 
+![API](https://img.shields.io/badge/API-v7.5-green.svg) 
 
 The official api for Python
 
